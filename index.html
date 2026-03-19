@@ -186,16 +186,6 @@ footer{margin-top:100px; padding:80px 0; border-top:1px solid rgba(255,255,255,.
     </div>
 </div>
 
-let isUploading = false; // Biến theo dõi trạng thái upload
-
-// Cảnh báo khi người dùng nhấn F5 hoặc đóng tab lúc đang upload
-window.addEventListener('beforeunload', (e) => {
-    if (isUploading) {
-        e.preventDefault();
-        e.returnValue = ''; // Hiển thị bảng cảnh báo mặc định của trình duyệt
-    }
-});
-
 <script type="module">
 // LƯU Ý: KHÔNG IMPORT FIREBASE STORAGE NỮA
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
@@ -333,49 +323,23 @@ window.deleteProject = async (id) => {
 };
 
 window.addMedia = async (e, pId) => {
-    const files = e.target.files;
-    if (!files.length) return;
-
     const statusLabel = e.target.nextElementSibling;
-    isUploading = true; // Bắt đầu khóa
+    statusLabel.innerText = "Đang tải lên, vui lòng đợi...";
     e.target.disabled = true;
-    statusLabel.innerText = "⏳ Đang tải lên... Vui lòng không đóng trang.";
 
-    for (let i = 0; i < files.length; i++) {
-        const f = files[i];
-        statusLabel.innerText = `⏳ Đang tải (${i + 1}/${files.length})...`;
-
-        const formData = new FormData();
-        formData.append("file", f);
-        formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
-
-        try {
-            const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, { 
-                method: "POST", 
-                body: formData 
-            });
-            const data = await res.json();
-            
-            if(data.secure_url) {
-                const item = { 
-                    id: "m_" + Date.now() + Math.random().toString(36).substr(2, 5), 
-                    projectId: pId, 
-                    data: data.secure_url, 
-                    type: f.type.startsWith("video") ? "video" : "image" 
-                };
-                await setDoc(doc(db, "media", item.id), item);
-                renderMedia(item);
-            }
-        } catch (err) {
-            console.error("Lỗi tải tệp:", f.name);
+    for (let f of e.target.files) {
+        const item = { id: "m_"+Date.now()+Math.random().toString(36).substring(7), projectId: pId, type: f.type.startsWith("video")?"video":"image" };
+        const fileUrl = await uploadToCloudinary(f);
+        
+        if(fileUrl) {
+            item.data = fileUrl;
+            await saveToFirestore("media", item.id, item);
+            renderMedia(item);
         }
     }
-
-    statusLabel.innerText = "✅ Đã tải xong!";
-    isUploading = false; // Mở khóa
+    statusLabel.innerText = "";
     e.target.disabled = false;
-    e.target.value = ""; 
-    setTimeout(() => { statusLabel.innerText = ""; }, 3000);
+    e.target.value = ""; // reset input
 };
 
 function renderMedia(item) {
@@ -389,46 +353,23 @@ function renderMedia(item) {
 }
 
 window.addHero = async () => {
-    const fileInput = document.getElementById("heroUpload");
-    const files = fileInput.files;
-    if (!files.length) return;
-
+    const files = document.getElementById("heroUpload").files;
     const btn = document.getElementById("heroBtn");
-    const originalText = btn.innerText;
-
-    isUploading = true; // Khóa trang
+    btn.innerText = "Đang tải lên...";
     btn.disabled = true;
-    btn.innerText = "⏳ Đang xử lý...";
 
     for (let f of files) {
-        const formData = new FormData();
-        formData.append("file", f);
-        formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
-
-        try {
-            const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, { 
-                method: "POST", 
-                body: formData 
-            });
-            const data = await res.json();
-            if(data.secure_url) {
-                const item = { 
-                    id: "hero_" + Date.now() + Math.random().toString(36).substr(2, 5), 
-                    data: data.secure_url, 
-                    type: f.type.startsWith("video") ? "video" : "image" 
-                };
-                await setDoc(doc(db, "media", item.id), item);
-                renderHero(item);
-            }
-        } catch (err) {
-            console.error("Lỗi Hero Media:", err);
+        const item = { id: "hero_"+Date.now()+Math.random().toString(36).substring(7), type: f.type.startsWith("video")?"video":"image" };
+        const fileUrl = await uploadToCloudinary(f);
+        if(fileUrl) {
+            item.data = fileUrl;
+            await saveToFirestore("media", item.id, item);
+            renderHero(item);
         }
     }
-
-    btn.innerText = originalText;
+    btn.innerText = "+ Add Showcase Media";
     btn.disabled = false;
-    isUploading = false; // Mở khóa
-    fileInput.value = "";
+    document.getElementById("heroUpload").value = "";
 };
 
 function renderHero(item) {
