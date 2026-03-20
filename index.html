@@ -47,23 +47,18 @@ header{ display:flex; align-items:center; justify-content:space-between; padding
 .search-box { margin-bottom: 35px; padding: 20px; background: rgba(76, 201, 240, 0.04); border-radius: 15px; border: 1px solid rgba(76, 201, 240, 0.15); }
 .search-box input { width: 100%; border: 1px solid #4cc9f0 !important; font-size: 16px; background: #1e264d; color: white; padding: 14px; border-radius: 10px; outline: none; }
 
-.project-folder{ background:rgba(17, 24, 51, 0.8); padding:35px; border-radius:20px; margin-top:40px; border: 1px solid rgba(255,255,255,0.03); transition: all 0.3s ease;}
+.project-folder{ background:rgba(17, 24, 51, 0.8); padding:35px; border-radius:20px; margin-top:40px; border: 1px solid rgba(255,255,255,0.03);}
 .project-header{display:flex; justify-content:space-between; align-items:center; margin-bottom:30px; gap: 20px;}
 .project-media{ display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:18px; margin-top:25px;}
-
-/* MỚI: Style cho chức năng thu gọn */
-.folder-toggle-wrapper { display: flex; align-items: center; gap: 12px; cursor: pointer; }
-.toggle-icon { font-size: 14px; transition: transform 0.3s ease; color: #4cc9f0; }
-.project-folder.collapsed .project-media, 
-.project-folder.collapsed .upload-area { display: none; }
-.project-folder.collapsed .toggle-icon { transform: rotate(-90deg); }
-.project-folder.collapsed { padding-bottom: 20px; }
-.project-folder.collapsed .project-header { margin-bottom: 0; }
-
 .media-item{position:relative; border-radius: 12px; overflow: hidden; background: #000;}
 .media-item img, .media-item video{width:100%; cursor:pointer; aspect-ratio:1/1; object-fit:cover; display: block; transition: 0.3s;}
 .media-item:hover img, .media-item:hover video { transform: scale(1.08); }
 .delete-file{position:absolute; top:8px; right:8px; background:#ff4d6d; border:none; width:26px; height:26px; border-radius:50%; color:white; cursor:pointer; z-index:5; font-size: 12px; display:flex; align-items:center; justify-content:center;}
+
+/* --- COLLAPSE STYLE --- */
+.collapse-btn { background: none; border: none; color: #4cc9f0; cursor: pointer; font-size: 18px; transition: 0.3s; padding: 5px; }
+.project-folder.collapsed .folder-content { display: none; }
+.project-folder.collapsed .collapse-btn { transform: rotate(-90deg); }
 
 .btn{background:#4cc9f0; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:700; color:#050a18; transition: .3s;}
 .btn:hover{opacity:0.9}
@@ -198,11 +193,12 @@ footer{margin-top:100px; padding:80px 0; border-top:1px solid rgba(255,255,255,.
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
-import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
+import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
 
+// 1. FIREBASE CONFIG
 const firebaseConfig = {
-      apiKey: "AIzaSyC_lK-uKgPrHFPYY5sb2hGH5faN_YkG2H4",
+  apiKey: "AIzaSyC_lK-uKgPrHFPYY5sb2hGH5faN_YkG2H4",
   authDomain: "porfolio-7d5f6.firebaseapp.com",
   databaseURL: "https://porfolio-7d5f6-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "porfolio-7d5f6",
@@ -215,6 +211,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
+// 2. CLOUDINARY CONFIG
 const CLOUDINARY_CLOUD_NAME = "dei1pbxpm"; 
 const CLOUDINARY_UPLOAD_PRESET = "Porfolio"; 
 
@@ -253,17 +250,11 @@ async function uploadToCloudinary(file) {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
-
     try {
-        const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, {
-            method: "POST", body: formData
-        });
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, { method: "POST", body: formData });
         const data = await res.json();
-        if(data.secure_url) return data.secure_url;
-        else { console.error(data); alert("Lỗi upload Cloudinary. Kiểm tra F12."); return null; }
-    } catch (err) {
-        console.error("Lỗi mạng:", err); return null;
-    }
+        return data.secure_url || null;
+    } catch (err) { return null; }
 }
 
 async function saveToFirestore(col, id, data) {
@@ -288,10 +279,32 @@ window.searchProjects = (type) => {
     }
 };
 
-// MỚI: Hàm thu gọn/mở rộng thư mục
+// === CHỨC NĂNG THU GỌN ===
 window.toggleFolder = (id) => {
     const folder = document.getElementById(id);
-    if(folder) folder.classList.toggle("collapsed");
+    folder.classList.toggle("collapsed");
+};
+
+// === CHỨC NĂNG CHỈNH SỬA ===
+window.editProject = async (id) => {
+    if(!isAdmin) return;
+    const folder = document.getElementById(id);
+    const clientEl = folder.querySelector('.client-name-text');
+    const industryEl = folder.querySelector('.industry-label-text');
+    
+    const newClient = prompt("Nhập tên khách hàng mới:", clientEl.innerText);
+    const newIndustry = prompt("Nhập ngành hàng mới:", industryEl.innerText);
+
+    if (newClient && newIndustry) {
+        try {
+            await updateDoc(doc(db, "projects", id), {
+                client: newClient,
+                industry: newIndustry
+            });
+            clientEl.innerText = newClient;
+            industryEl.innerText = newIndustry;
+        } catch (e) { alert("Lỗi khi cập nhật!"); }
+    }
 };
 
 window.createProject = async (type, exId=null, exC=null, exI=null) => {
@@ -302,26 +315,32 @@ window.createProject = async (type, exId=null, exC=null, exI=null) => {
     if (!exId) await saveToFirestore("projects", id, { id, type, client, industry });
 
     const container = document.getElementById(type + "Projects");
-    const folder = document.createElement("div"); folder.className = "project-folder"; folder.id = id;
+    const folder = document.createElement("div"); 
+    folder.className = "project-folder"; 
+    folder.id = id;
     
-    // CẬP NHẬT: Thêm nút toggle vào header
     folder.innerHTML = `
         <div class="project-header">
-            <div class="folder-toggle-wrapper" onclick="toggleFolder('${id}')">
-                <span class="toggle-icon">▼</span>
+            <div style="display:flex; align-items:center; gap:15px;">
+                <button class="collapse-btn" onclick="toggleFolder('${id}')">▼</button>
                 <div>
-                    <b style="font-size:22px; color:#4cc9f0">${client}</b>
-                    <div class="industry-label" style="color:#9aa4c7; font-size:15px;">Ngành hàng: ${industry}</div>
+                    <b class="client-name-text" style="font-size:22px; color:#4cc9f0">${client}</b>
+                    <div class="industry-label" style="color:#9aa4c7; font-size:15px;">Ngành hàng: <span class="industry-label-text">${industry}</span></div>
                 </div>
             </div>
-            <button class="btn delete-project admin-btn" style="background:#ff4d6d; color:white; padding:8px 16px; font-size:12px" onclick="deleteProject('${id}')">Xóa dự án</button>
+            <div style="display:flex; gap:10px;">
+                <button class="btn admin-btn" style="background:#fca311; color:#050a18; padding:8px 16px; font-size:12px" onclick="editProject('${id}')">Sửa</button>
+                <button class="btn delete-project admin-btn" style="background:#ff4d6d; color:white; padding:8px 16px; font-size:12px" onclick="deleteProject('${id}')">Xóa dự án</button>
+            </div>
         </div>
-        <div class="admin-btn upload-area" style="background:rgba(255,255,255,0.02); padding:18px; border-radius:12px; margin-bottom:20px; border: 1px solid rgba(255,255,255,0.05)">
-            <p style="font-size:13px; color:#4cc9f0; margin-bottom:10px; font-weight:600">Thêm tệp cho dự án:</p>
-            <input type="file" multiple onchange="addMedia(event, '${id}')">
-            <span class="upload-status" style="font-size:12px; color:#ff4d6d; margin-left: 10px;"></span>
+        <div class="folder-content">
+            <div class="admin-btn upload-area" style="background:rgba(255,255,255,0.02); padding:18px; border-radius:12px; margin-bottom:20px; border: 1px solid rgba(255,255,255,0.05)">
+                <p style="font-size:13px; color:#4cc9f0; margin-bottom:10px; font-weight:600">Thêm tệp cho dự án:</p>
+                <input type="file" multiple onchange="addMedia(event, '${id}')">
+                <span class="upload-status" style="font-size:12px; color:#ff4d6d; margin-left: 10px;"></span>
+            </div>
+            <div class="project-media"></div>
         </div>
-        <div class="project-media"></div>
     `;
     container.prepend(folder);
     if(!exId){ document.getElementById(type+"Client").value=""; document.getElementById(type+"Industry").value=""; }
@@ -341,13 +360,11 @@ window.deleteProject = async (id) => {
 
 window.addMedia = async (e, pId) => {
     const statusLabel = e.target.nextElementSibling;
-    statusLabel.innerText = "Đang tải lên, vui lòng đợi...";
+    statusLabel.innerText = "Đang tải lên...";
     e.target.disabled = true;
-
     for (let f of e.target.files) {
         const item = { id: "m_"+Date.now()+Math.random().toString(36).substring(7), projectId: pId, type: f.type.startsWith("video")?"video":"image" };
         const fileUrl = await uploadToCloudinary(f);
-        
         if(fileUrl) {
             item.data = fileUrl;
             await saveToFirestore("media", item.id, item);
@@ -356,7 +373,7 @@ window.addMedia = async (e, pId) => {
     }
     statusLabel.innerText = "";
     e.target.disabled = false;
-    e.target.value = ""; 
+    e.target.value = "";
 };
 
 function renderMedia(item) {
@@ -374,7 +391,6 @@ window.addHero = async () => {
     const btn = document.getElementById("heroBtn");
     btn.innerText = "Đang tải lên...";
     btn.disabled = true;
-
     for (let f of files) {
         const item = { id: "hero_"+Date.now()+Math.random().toString(36).substring(7), type: f.type.startsWith("video")?"video":"image" };
         const fileUrl = await uploadToCloudinary(f);
@@ -439,7 +455,6 @@ window.onkeydown = (e) => { if(e.key === "Escape") window.closeViewer(); if(docu
 async function loadData() {
     const projectsSnap = await getDocs(collection(db, "projects"));
     projectsSnap.forEach(docSnap => { const c = docSnap.data(); window.createProject(c.type, c.id, c.client, c.industry); });
-
     const mediaSnap = await getDocs(collection(db, "media"));
     mediaSnap.forEach(docSnap => {
         const m = docSnap.data();
