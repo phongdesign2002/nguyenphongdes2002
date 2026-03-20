@@ -47,9 +47,19 @@ header{ display:flex; align-items:center; justify-content:space-between; padding
 .search-box { margin-bottom: 35px; padding: 20px; background: rgba(76, 201, 240, 0.04); border-radius: 15px; border: 1px solid rgba(76, 201, 240, 0.15); }
 .search-box input { width: 100%; border: 1px solid #4cc9f0 !important; font-size: 16px; background: #1e264d; color: white; padding: 14px; border-radius: 10px; outline: none; }
 
-.project-folder{ background:rgba(17, 24, 51, 0.8); padding:35px; border-radius:20px; margin-top:40px; border: 1px solid rgba(255,255,255,0.03);}
+.project-folder{ background:rgba(17, 24, 51, 0.8); padding:35px; border-radius:20px; margin-top:40px; border: 1px solid rgba(255,255,255,0.03); transition: all 0.3s ease;}
 .project-header{display:flex; justify-content:space-between; align-items:center; margin-bottom:30px; gap: 20px;}
 .project-media{ display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:18px; margin-top:25px;}
+
+/* MỚI: Style cho chức năng thu gọn */
+.folder-toggle-wrapper { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.toggle-icon { font-size: 14px; transition: transform 0.3s ease; color: #4cc9f0; }
+.project-folder.collapsed .project-media, 
+.project-folder.collapsed .upload-area { display: none; }
+.project-folder.collapsed .toggle-icon { transform: rotate(-90deg); }
+.project-folder.collapsed { padding-bottom: 20px; }
+.project-folder.collapsed .project-header { margin-bottom: 0; }
+
 .media-item{position:relative; border-radius: 12px; overflow: hidden; background: #000;}
 .media-item img, .media-item video{width:100%; cursor:pointer; aspect-ratio:1/1; object-fit:cover; display: block; transition: 0.3s;}
 .media-item:hover img, .media-item:hover video { transform: scale(1.08); }
@@ -187,12 +197,10 @@ footer{margin-top:100px; padding:80px 0; border-top:1px solid rgba(255,255,255,.
 </div>
 
 <script type="module">
-// LƯU Ý: KHÔNG IMPORT FIREBASE STORAGE NỮA
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
 import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-auth.js";
 
-// 1. ĐIỀN THÔNG TIN FIREBASE (Dùng cho Database và Đăng nhập)
 const firebaseConfig = {
       apiKey: "AIzaSyC_lK-uKgPrHFPYY5sb2hGH5faN_YkG2H4",
   authDomain: "porfolio-7d5f6.firebaseapp.com",
@@ -207,11 +215,9 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// 2. ĐIỀN THÔNG TIN CLOUDINARY (Dùng để upload ảnh/video miễn phí)
 const CLOUDINARY_CLOUD_NAME = "dei1pbxpm"; 
 const CLOUDINARY_UPLOAD_PRESET = "Porfolio"; 
 
-// === QUẢN LÝ TRẠNG THÁI ĐĂNG NHẬP ===
 let isAdmin = false;
 
 onAuthStateChanged(auth, (user) => {
@@ -242,7 +248,6 @@ window.performLogin = async () => {
     catch (error) { errObj.style.display = "block"; errObj.innerText = "Sai tài khoản hoặc mật khẩu!"; }
 };
 
-// === CLOUDINARY UPLOAD FUNCTION ===
 async function uploadToCloudinary(file) {
     if(!isAdmin) return null;
     const formData = new FormData();
@@ -261,7 +266,6 @@ async function uploadToCloudinary(file) {
     }
 }
 
-// === FIRESTORE FUNCTIONS ===
 async function saveToFirestore(col, id, data) {
     if(!isAdmin) return;
     try { await setDoc(doc(db, col, id), data); } catch(e) { console.error(e); }
@@ -272,7 +276,6 @@ async function deleteFromFirebase(col, id) {
     try { await deleteDoc(doc(db, col, id)); } catch(e) { console.error(e); }
 }
 
-// === GÁN HÀM RA WINDOW ===
 window.goHome = () => { document.querySelectorAll(".page").forEach(p=>{p.classList.remove("active"); p.style.display="none";}); document.getElementById("home").style.display="block"; setTimeout(()=>document.getElementById("home").classList.add("active"),10); };
 window.openPage = (id) => { document.querySelectorAll(".page").forEach(p=>{p.classList.remove("active"); p.style.display="none";}); document.getElementById(id).style.display="block"; setTimeout(()=>document.getElementById(id).classList.add("active"),10); };
 
@@ -285,6 +288,12 @@ window.searchProjects = (type) => {
     }
 };
 
+// MỚI: Hàm thu gọn/mở rộng thư mục
+window.toggleFolder = (id) => {
+    const folder = document.getElementById(id);
+    if(folder) folder.classList.toggle("collapsed");
+};
+
 window.createProject = async (type, exId=null, exC=null, exI=null) => {
     const id = exId || type + "_" + Date.now();
     const client = exC || document.getElementById(type + "Client").value;
@@ -294,9 +303,17 @@ window.createProject = async (type, exId=null, exC=null, exI=null) => {
 
     const container = document.getElementById(type + "Projects");
     const folder = document.createElement("div"); folder.className = "project-folder"; folder.id = id;
+    
+    // CẬP NHẬT: Thêm nút toggle vào header
     folder.innerHTML = `
         <div class="project-header">
-            <div><b style="font-size:22px; color:#4cc9f0">${client}</b><div class="industry-label" style="color:#9aa4c7; font-size:15px;">Ngành hàng: ${industry}</div></div>
+            <div class="folder-toggle-wrapper" onclick="toggleFolder('${id}')">
+                <span class="toggle-icon">▼</span>
+                <div>
+                    <b style="font-size:22px; color:#4cc9f0">${client}</b>
+                    <div class="industry-label" style="color:#9aa4c7; font-size:15px;">Ngành hàng: ${industry}</div>
+                </div>
+            </div>
             <button class="btn delete-project admin-btn" style="background:#ff4d6d; color:white; padding:8px 16px; font-size:12px" onclick="deleteProject('${id}')">Xóa dự án</button>
         </div>
         <div class="admin-btn upload-area" style="background:rgba(255,255,255,0.02); padding:18px; border-radius:12px; margin-bottom:20px; border: 1px solid rgba(255,255,255,0.05)">
@@ -339,7 +356,7 @@ window.addMedia = async (e, pId) => {
     }
     statusLabel.innerText = "";
     e.target.disabled = false;
-    e.target.value = ""; // reset input
+    e.target.value = ""; 
 };
 
 function renderMedia(item) {
@@ -393,7 +410,6 @@ window.addAvatar = async (input) => {
 
 window.removeAvatar = async (e) => { e.preventDefault(); document.getElementById("avatarImg").src = ""; await deleteFromFirebase("media", "avatar"); };
 
-// === ZOOM & PAN LOGIC ===
 let scale = 1, isDragging = false, startX, startY, translateX = 0, translateY = 0, lastTouchDist = 0;
 const vContent = document.getElementById("viewerContent"), vContainer = document.getElementById("viewerContainer");
 document.getElementById("viewer").onwheel = (e) => { e.preventDefault(); scale = Math.min(Math.max(.5, scale + (e.deltaY > 0 ? -0.2 : 0.2)), 5); updateTransform(); };
@@ -420,7 +436,6 @@ window.nextMedia = () => { currentIndex = (currentIndex + 1) % mediaList.length;
 window.prevMedia = () => { currentIndex = (currentIndex - 1 + mediaList.length) % mediaList.length; showMedia(); };
 window.onkeydown = (e) => { if(e.key === "Escape") window.closeViewer(); if(document.getElementById("viewer").style.display === "flex") { if(e.key === "ArrowRight") window.nextMedia(); if(e.key === "ArrowLeft") window.prevMedia(); } };
 
-// === INIT DATA ===
 async function loadData() {
     const projectsSnap = await getDocs(collection(db, "projects"));
     projectsSnap.forEach(docSnap => { const c = docSnap.data(); window.createProject(c.type, c.id, c.client, c.industry); });
