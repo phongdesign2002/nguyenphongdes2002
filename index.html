@@ -71,7 +71,7 @@ input[type="text"], input[type="password"], input[type="email"] { background: #1
 #viewerContainer { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; cursor: grab; }
 #viewerContainer:active { cursor: grabbing; }
 #viewerContent { transition: transform 0.1s ease-out; transform-origin: center; display: flex; align-items: center; justify-content: center; }
-#viewerContent img, #viewerContent video { max-width: 90vw; max-height: 90vh; box-shadow: 0 0 50px rgba(0,0,0,1); pointer-events: none; }
+#viewerContent img, #viewerContent video { max-width: 90vw; max-height: 90vh; box-shadow: 0 0 50px rgba(0,0,0,1); pointer-events: auto; /* Thêm dòng này để bấm được nút Play */ }
 .viewer-arrow{position:absolute; top:50%; transform:translateY(-50%); font-size:45px; background:rgba(255,255,255,0.05); width: 65px; height: 65px; border-radius: 50%; border:none; color:white; cursor:pointer; z-index: 10001; display:flex; align-items:center; justify-content:center;}
 .viewer-back{position:absolute; top:30px; left:30px; color:white; background:rgba(255,255,255,0.1); border:none; cursor:pointer; padding: 10px 20px; border-radius: 30px; z-index: 10001;}
 
@@ -380,7 +380,18 @@ function renderMedia(item) {
     const folder = document.getElementById(item.projectId); if(!folder) return;
     const div = document.createElement("div"); div.className = "media-item"; div.id = item.id;
     const m = item.type === "video" ? document.createElement("video") : document.createElement("img");
-    m.src = item.data; m.onclick = () => window.openViewer(div);
+    
+    m.src = item.data; 
+    
+    // Thêm đoạn này để video tự chạy xem trước
+    if(item.type === "video") {
+        m.muted = true;
+        m.loop = true;
+        m.autoplay = true;
+        m.playsInline = true;
+    }
+
+    m.onclick = () => window.openViewer(div);
     const del = document.createElement("button"); del.className = "delete-file admin-btn"; del.innerHTML = "✕";
     del.onclick = async (e) => { e.stopPropagation(); div.remove(); await deleteFromFirebase("media", item.id); };
     div.append(m, del); folder.querySelector(".project-media").append(div);
@@ -446,7 +457,19 @@ window.openViewer = (el) => {
     document.getElementById("viewer").style.display = "flex";
     setTimeout(() => document.getElementById("viewer").classList.add("active"), 10);
 };
-function showMedia() { resetTransform(); const content = document.getElementById("viewerContent"); content.innerHTML = ""; let clone = mediaList[currentIndex].cloneNode(true); if(clone.tagName === "VIDEO") clone.controls = true; content.appendChild(clone); }
+function showMedia() { 
+    resetTransform(); 
+    const content = document.getElementById("viewerContent"); 
+    content.innerHTML = ""; 
+    let clone = mediaList[currentIndex].cloneNode(true); 
+    
+    if(clone.tagName === "VIDEO") {
+        clone.controls = true; // Hiện nút Play/Pause
+        clone.muted = false;    // Bật âm thanh
+        clone.play();           // Tự chạy khi mở
+    } 
+    content.appendChild(clone); 
+}
 window.closeViewer = () => { document.getElementById("viewer").classList.remove("active"); setTimeout(() => document.getElementById("viewer").style.display = "none", 400); };
 window.nextMedia = () => { currentIndex = (currentIndex + 1) % mediaList.length; showMedia(); };
 window.prevMedia = () => { currentIndex = (currentIndex - 1 + mediaList.length) % mediaList.length; showMedia(); };
