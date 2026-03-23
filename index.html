@@ -64,16 +64,21 @@ header{ display:flex; align-items:center; justify-content:space-between; padding
 .media-item:hover img { transform: scale(1.08); }
 
 /* --- PHẦN 2: CHỈ TÁC ĐỘNG VÀO TRANG PRINT (HIỆN NGANG 16:9) --- */
+/* CHỈ TÁC ĐỘNG VÀO MỤC PRINT */
 #printPage .project-media {
-    display: flex;
-    flex-direction: column; /* Xếp từ trên xuống dưới */
-    gap: 40px; 
-    max-width: 1000px;
+    display: flex;             /* Chuyển sang dạng danh sách xếp chồng */
+    flex-direction: column; 
+    gap: 40px;                 /* Khoảng cách giữa các ảnh khi cuộn */
+    max-width: 1000px;         /* Độ rộng vừa phải để xem cho đẹp */
     margin: 30px auto;
 }
+
 #printPage .media-item img {
-    aspect-ratio: 16 / 9 !important; /* Ép riêng Print thành khung ngang */
-    object-position: top; /* Giữ phần đỉnh của thiết kế */
+    aspect-ratio: 16 / 9 !important; /* Ép riêng ảnh mục Print sang ngang 16:9 */
+    object-fit: cover;
+    object-position: top;            /* Lấy phần đầu thiết kế */
+    width: 100%;
+    height: auto;
 }
 .delete-file{position:absolute; top:8px; right:8px; background:#ff4d6d; border:none; width:26px; height:26px; border-radius:50%; color:white; cursor:pointer; z-index:5; font-size: 12px; display:flex; align-items:center; justify-content:center;}
 
