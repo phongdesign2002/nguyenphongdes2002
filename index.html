@@ -52,6 +52,8 @@ header{ display:flex; align-items:center; justify-content:space-between; padding
 .project-media { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:18px; margin-top:25px; }
 /* --- PHẦN HIỂN THỊ TRONG THƯ MỤC --- */
 /* Kiểu lưới chung cho Poster và Video */
+/* --- PHẦN DỰ ÁN --- */
+/* Giữ nguyên Poster và Video là hình vuông 1:1 */
 .project-media { 
     display: grid; 
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
@@ -59,27 +61,23 @@ header{ display:flex; align-items:center; justify-content:space-between; padding
     margin-top: 25px; 
 }
 
-/* RIÊNG CHO PRINT: Hiện 16:9 và xếp chồng để cuộn chuột */
+/* RIÊNG PRINT: Chuyển thành 16:9 và xếp chồng để lăn chuột */
 #printPage .project-media {
     display: flex;
-    flex-direction: column; /* Xếp ảnh từ trên xuống */
-    gap: 40px; /* Khoảng cách giữa các ảnh thiết kế */
+    flex-direction: column; 
+    gap: 35px;
     max-width: 1000px;
     margin: 30px auto;
 }
 
-#printPage .media-item img, 
-#printPage .media-item video {
-    aspect-ratio: 16 / 9; /* Ép tỉ lệ ngang đúng ý bạn */
-    object-fit: cover;
+#printPage .media-item img {
+    aspect-ratio: 16 / 9 !important; 
     object-position: top;
-    width: 100%;
-    height: auto;
 }
 
 .media-item { position: relative; border-radius: 12px; overflow: hidden; background: #000; }
-.media-item img, .media-item video { width: 100%; cursor: pointer; display: block; transition: 0.3s; }
-.delete-file{position:absolute; top:8px; right:8px; background:#ff4d6d; border:none; width:26px; height:26px; border-radius:50%; color:white; cursor:pointer; z-index:5; font-size: 12px; display:flex; align-items:center; justify-content:center;}
+.media-item img, .media-item video { width: 100%; cursor: pointer; aspect-ratio: 1/1; object-fit: cover; display: block; transition: 0.3s; }
+.delete-file { position: absolute; top: 8px; right: 8px; background: #ff4d6d; border: none; width: 26px; height: 26px; border-radius: 50%; color: white; cursor: pointer; z-index: 5; font-size: 12px; display: flex; align-items: center; justify-content: center; }
 
 /* --- COLLAPSE STYLE --- */
 .collapse-btn { background: none; border: none; color: #4cc9f0; cursor: pointer; font-size: 18px; transition: 0.3s; padding: 5px; }
@@ -93,42 +91,29 @@ input[type="text"], input[type="password"], input[type="email"] { background: #1
 
 /* --- VIEWER --- */
 /* --- BỘ XEM ẢNH: CHO PHÉP LĂN CHUỘT LÊN XUỐNG --- */
+/* --- BỘ XEM ẢNH (VIEWER) --- */
 .viewer { 
-    position: fixed; 
-    top: 0; left: 0; 
-    width: 100%; height: 100%; 
-    background: rgba(0,0,0,0.98); 
-    display: none; 
-    z-index: 9999; 
-    overflow-y: auto; /* Kích hoạt con lăn chuột */
-    -webkit-overflow-scrolling: touch;
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background: rgba(0,0,0,0.98); display: none; z-index: 9999; 
+    overflow-y: auto; /* Cho phép lăn chuột dọc */
 }
-
-.viewer.active { 
-    display: block; /* Chuyển sang block để ảnh dài có thể cuộn xuống */
-}
+.viewer.active { display: block; } 
 
 #viewerContainer { 
-    width: 100%; 
-    min-height: 100%; 
-    display: flex; 
-    justify-content: center; 
-    align-items: flex-start; /* Để ảnh bắt đầu từ đỉnh đầu */
+    width: 100%; min-height: 100%; 
+    display: flex; justify-content: center; align-items: flex-start; 
     padding: 60px 0; 
 }
 
-#viewerContent { 
-    width: 100%; 
-    display: flex; 
-    justify-content: center; 
-}
+#viewerContent { width: 100%; display: flex; justify-content: center; }
 
 #viewerContent img, #viewerContent video { 
-    width: 85vw; /* Chiều ngang chiếm 85% màn hình */
-    max-width: 1100px; 
-    height: auto; /* Chiều cao tự động để lăn chuột xem hết thiết kế dài */
+    width: 85vw; max-width: 1100px; height: auto; 
     box-shadow: 0 0 50px rgba(0,0,0,1); 
 }
+
+/* Cố định các nút khi lăn chuột */
+.viewer-arrow, .viewer-back { position: fixed !important; }
 
 /* Cố định các nút điều hướng để khi lăn chuột chúng không bị trôi mất */
 .viewer-arrow, .viewer-back { 
