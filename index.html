@@ -8,27 +8,7 @@
 <style>
 /* --- CORE STYLE --- */
 *{margin:0;padding:0;box-sizing:border-box}
-body{ 
-    font-family:'Inter', sans-serif; 
-    color:white; 
-    min-height:100vh; 
-    overflow-x:hidden; 
-    position: relative; /* Cần cho lớp phủ */
-    background-size: cover;
-    background-attachment: fixed;
-    background-position: center;
-    background-repeat: no-repeat;
-}
-
-/* Lớp phủ mờ để đảm bảo chữ vẫn đọc được khi có hình nền phức tạp */
-body::before {
-    content: '';
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: radial-gradient(circle at top,#1c2f6b 0%,#0b1435 40%,#050a18 100%);
-    z-index: -1;
-    opacity: 0.9; /* Độ mờ của lớp phủ */
-}
+body{ font-family:'Inter', sans-serif; color:white; background:radial-gradient(circle at top,#1c2f6b 0%,#0b1435 40%,#050a18 100%); min-height:100vh; overflow-x:hidden; }
 
 /* --- VIEW-ONLY MODE --- */
 body.view-only .admin-btn, 
@@ -185,13 +165,6 @@ footer{margin-top:100px; padding:80px 0; border-top:1px solid rgba(255,255,255,.
             <img id="avatarImg" src="">
             <button class="admin-btn" onclick="removeAvatar(event)">✕</button>
         </label>
-        <div class="admin-btn bg-controls" style="display: flex; gap: 8px; margin-left: 10px;">
-            <label class="btn" style="background: rgba(255,255,255,0.1); color: white; padding: 8px 12px; font-size: 12px; border-radius: 6px; cursor: pointer;" title="Đổi hình nền">
-                <input type="file" style="display:none" onchange="addBackground(this)">
-                🎨 BG
-            </label>
-            <button class="btn admin-btn" style="background:#ff4d6d; color:white; padding:8px 12px; font-size:12px; border-radius: 6px; border: none; cursor: pointer;" onclick="removeBackground(event)" title="Xóa hình nền">✕</button>
-        </div>
     </div>
     <button id="authBtn" class="btn" style="background:rgba(255,255,255,0.1); color:white; font-size:13px;" onclick="showLoginModal()">Đăng nhập Admin</button>
 </header>
@@ -524,24 +497,6 @@ window.addAvatar = async (input) => {
 
 window.removeAvatar = async (e) => { e.preventDefault(); document.getElementById("avatarImg").src = ""; await deleteFromFirebase("media", "avatar"); };
 
-// === CHỨC NĂNG THÊM NỀN TRANG WEB ===
-window.addBackground = async (input) => {
-    const file = input.files[0]; if(!file) return;
-    const fileUrl = await uploadToCloudinary(file);
-    if(fileUrl) {
-        const item = { id: "background", type: "image", data: fileUrl };
-        await saveToFirestore("media", "background", item);
-        document.body.style.backgroundImage = `url('${fileUrl}')`;
-    }
-};
-
-window.removeBackground = async (e) => {
-    e.preventDefault();
-    document.body.style.backgroundImage = "";
-    await deleteFromFirebase("media", "background");
-};
-// === HẾT CHỨC NĂNG THÊM NỀN ===
-
 let scale = 1, isDragging = false, startX, startY, translateX = 0, translateY = 0, lastTouchDist = 0;
 const vContent = document.getElementById("viewerContent"), vContainer = document.getElementById("viewerContainer");
 
@@ -597,7 +552,6 @@ async function loadData() {
     mediaSnap.forEach(docSnap => {
         const m = docSnap.data();
         if(m.id === "avatar") document.getElementById("avatarImg").src = m.data;
-        else if(m.id === "background") document.body.style.backgroundImage = `url('${m.data}')`;
         else if(m.id.startsWith("hero_")) renderHero(m);
         else if(m.projectId) renderMedia(m);
     });
