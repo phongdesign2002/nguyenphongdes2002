@@ -50,14 +50,35 @@ header{ display:flex; align-items:center; justify-content:space-between; padding
 .project-folder{ background:rgba(17, 24, 51, 0.8); padding:35px; border-radius:20px; margin-top:40px; border: 1px solid rgba(255,255,255,0.03);}
 .project-header{display:flex; justify-content:space-between; align-items:center; margin-bottom:30px; gap: 20px;}
 .project-media { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:18px; margin-top:25px; }
-.media-item { position: relative; border-radius: 12px; overflow: hidden; background: #000; }
-.media-item img, .media-item video { width: 100%; cursor: pointer; aspect-ratio: 1/1; object-fit: cover; display: block; transition: 0.3s; }
-
-/* Fix riêng cho mục Print hiện 16:9 */
-#printPage .project-media { grid-template-columns: 1fr; max-width: 900px; margin: 30px auto; }
-#printPage .media-item img { aspect-ratio: 16/9; object-position: top; }
+/* --- PHẦN HIỂN THỊ TRONG THƯ MỤC --- */
+/* Kiểu lưới chung cho Poster và Video */
+.project-media { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
+    gap: 18px; 
+    margin-top: 25px; 
 }
-.media-item:hover img, .media-item:hover video { transform: scale(1.08); }
+
+/* RIÊNG CHO PRINT: Hiện 16:9 và xếp chồng để cuộn chuột */
+#printPage .project-media {
+    display: flex;
+    flex-direction: column; /* Xếp ảnh từ trên xuống */
+    gap: 40px; /* Khoảng cách giữa các ảnh thiết kế */
+    max-width: 1000px;
+    margin: 30px auto;
+}
+
+#printPage .media-item img, 
+#printPage .media-item video {
+    aspect-ratio: 16 / 9; /* Ép tỉ lệ ngang đúng ý bạn */
+    object-fit: cover;
+    object-position: top;
+    width: 100%;
+    height: auto;
+}
+
+.media-item { position: relative; border-radius: 12px; overflow: hidden; background: #000; }
+.media-item img, .media-item video { width: 100%; cursor: pointer; display: block; transition: 0.3s; }
 .delete-file{position:absolute; top:8px; right:8px; background:#ff4d6d; border:none; width:26px; height:26px; border-radius:50%; color:white; cursor:pointer; z-index:5; font-size: 12px; display:flex; align-items:center; justify-content:center;}
 
 /* --- COLLAPSE STYLE --- */
@@ -71,11 +92,33 @@ header{ display:flex; align-items:center; justify-content:space-between; padding
 input[type="text"], input[type="password"], input[type="email"] { background: #1e264d; border: 1px solid #333; color: white; padding: 12px; border-radius: 10px; outline: none;}
 
 /* --- VIEWER --- */
-.viewer { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); display:none; z-index:9999; overflow-y: auto; }
-.viewer.active { display:block; }
-#viewerContainer { width: 100%; min-height: 100%; display: flex; justify-content: center; align-items: flex-start; padding: 60px 0; }
-#viewerContent { display: flex; align-items: center; justify-content: center; width: 100%; }
-#viewerContent img, #viewerContent video { width: 85vw; max-width: 1100px; height: auto; box-shadow: 0 0 50px rgba(0,0,0,1); }
+/* --- BỘ PHÓNG TO (VIEWER) CHO PHÉP CUỘN CHUỘT --- */
+.viewer { 
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background: rgba(0,0,0,0.98); display: none; z-index: 9999; 
+    overflow-y: auto; /* Kích hoạt con lăn chuột để cuộn */
+}
+
+.viewer.active { display: block; } /* Đổi sang block để cuộn tự nhiên */
+
+#viewerContainer { 
+    width: 100%; min-height: 100%; 
+    display: flex; justify-content: center; 
+    align-items: flex-start; /* Ảnh bắt đầu từ đỉnh màn hình */
+    padding: 80px 0; 
+}
+
+#viewerContent { width: 100%; display: flex; justify-content: center; }
+
+#viewerContent img, #viewerContent video { 
+    width: 90vw; /* Chiều ngang to 90% màn hình */
+    max-width: 1200px; 
+    height: auto; /* Chiều cao tự động để lăn chuột xem hết ảnh dài */
+    box-shadow: 0 0 60px rgba(0,0,0,1); 
+}
+
+/* Giữ nút mũi tên và nút đóng luôn cố định khi cuộn */
+.viewer-arrow, .viewer-back { position: fixed !important; }
 .viewer-arrow{position:absolute; top:50%; transform:translateY(-50%); font-size:45px; background:rgba(255,255,255,0.05); width: 65px; height: 65px; border-radius: 50%; border:none; color:white; cursor:pointer; z-index: 10001; display:flex; align-items:center; justify-content:center;}
 .viewer-back{position:absolute; top:30px; left:30px; color:white; background:rgba(255,255,255,0.1); border:none; cursor:pointer; padding: 10px 20px; border-radius: 30px; z-index: 10001;}
 
@@ -443,7 +486,6 @@ window.removeAvatar = async (e) => { e.preventDefault(); document.getElementById
 
 let scale = 1, isDragging = false, startX, startY, translateX = 0, translateY = 0, lastTouchDist = 0;
 const vContent = document.getElementById("viewerContent"), vContainer = document.getElementById("viewerContainer");
-document.getElementById("viewer").onwheel = (e) => { e.preventDefault(); scale = Math.min(Math.max(.5, scale + (e.deltaY > 0 ? -0.2 : 0.2)), 5); updateTransform(); };
 vContainer.onmousedown = (e) => { isDragging = true; startX = e.clientX - translateX; startY = e.clientY - translateY; };
 window.onmousemove = (e) => { if (!isDragging) return; translateX = e.clientX - startX; translateY = e.clientY - startY; updateTransform(); };
 window.onmouseup = () => isDragging = false;
