@@ -478,6 +478,16 @@ function resetTransform() { scale = 1; translateX = 0; translateY = 0; updateTra
 
 let mediaList = []; let currentIndex = 0;
 window.openViewer = (el) => {
+    const viewerEl = document.getElementById("viewer");
+    
+    // Kiểm tra nếu ảnh được click nằm trong trang printPage
+    if (el.closest('#printPage')) {
+        viewerEl.classList.add('print-mode');
+    } else {
+        viewerEl.classList.remove('print-mode');
+    }
+
+    // ... (Giữ nguyên các dòng code cũ bên dưới của bạn) ...
     mediaList = [...el.parentElement.querySelectorAll(".media-item img, .media-item video")];
     currentIndex = mediaList.indexOf(el.querySelector("img, video"));
     resetTransform(); showMedia();
