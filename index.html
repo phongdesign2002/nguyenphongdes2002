@@ -477,7 +477,6 @@ window.removeAvatar = async (e) => { e.preventDefault(); document.getElementById
 
 let scale = 1, isDragging = false, startX, startY, translateX = 0, translateY = 0, lastTouchDist = 0;
 const vContent = document.getElementById("viewerContent"), vContainer = document.getElementById("viewerContainer");
-document.getElementById("viewer").onwheel = (e) => { e.preventDefault(); scale = Math.min(Math.max(.5, scale + (e.deltaY > 0 ? -0.2 : 0.2)), 5); updateTransform(); };
 vContainer.onmousedown = (e) => { isDragging = true; startX = e.clientX - translateX; startY = e.clientY - translateY; };
 window.onmousemove = (e) => { if (!isDragging) return; translateX = e.clientX - startX; translateY = e.clientY - startY; updateTransform(); };
 window.onmouseup = () => isDragging = false;
